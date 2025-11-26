@@ -1,0 +1,25 @@
+{% extends 'web/base.html' %}
+{% block title %}首页{% endblock %}
+
+{% block content %}
+  <div class="text-center py-5">
+    <h1 class="mb-3">{{ message }}</h1>
+    {% if not user.is_authenticated %}
+      <p>
+        <a class="btn btn-primary me-2" href="{% url 'web:login' %}">去登录</a>
+        <a class="btn btn-outline-secondary" href="{% url 'web:register' %}">去注册</a>
+      </p>
+    {% endif %}
+  </div>
+{% endblock %}
+
+{
+  "cells": [],
+  "metadata": {
+    "language_info": {
+      "name": "python"
+    }
+  },
+  "nbformat": 4,
+  "nbformat_minor": 2
+}

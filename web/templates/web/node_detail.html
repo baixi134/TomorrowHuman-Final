@@ -1,0 +1,333 @@
+{% extends "web/base.html" %}
+{% block title %}{{ node.title }} - 知识树{% endblock %}
+
+{% block content %}
+  <style>
+    /* 核心节点样式 */
+    .core-node {
+      background: linear-gradient(135deg, rgba(22, 33, 62, 0.95), rgba(15, 52, 96, 0.95));
+      border: 2px solid var(--neon-cyan);
+      border-radius: 16px;
+      padding: 2rem;
+      margin-bottom: 3rem;
+      position: relative;
+      box-shadow: 0 0 40px rgba(0, 255, 255, 0.3), inset 0 0 20px rgba(0, 255, 255, 0.1);
+      animation: pulse-glow 3s ease-in-out infinite;
+    }
+
+    @keyframes pulse-glow {
+      0%, 100% {
+        box-shadow: 0 0 40px rgba(0, 255, 255, 0.3), inset 0 0 20px rgba(0, 255, 255, 0.1);
+      }
+      50% {
+        box-shadow: 0 0 60px rgba(0, 255, 255, 0.5), inset 0 0 30px rgba(0, 255, 255, 0.15);
+      }
+    }
+
+    .core-node::before {
+      content: '⚡';
+      position: absolute;
+      top: -15px;
+      left: 30px;
+      font-size: 2rem;
+      filter: drop-shadow(0 0 10px var(--neon-cyan));
+    }
+
+    .core-node-header {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .core-node-avatar {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 3px solid var(--neon-cyan);
+      box-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+    }
+
+    .core-node-title {
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: var(--neon-cyan);
+      text-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+      margin: 0;
+      flex: 1;
+    }
+
+    .core-node-meta {
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .core-node-content {
+      color: var(--text-primary);
+      line-height: 1.8;
+      font-size: 1.05rem;
+    }
+
+    /* 数据流样式 */
+    .data-stream {
+      margin-top: 2rem;
+    }
+
+    .data-stream-title {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: var(--neon-purple);
+      margin-bottom: 2rem;
+      text-align: center;
+      text-shadow: 0 0 15px rgba(157, 78, 221, 0.5);
+      position: relative;
+    }
+
+    .data-stream-title::before,
+    .data-stream-title::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      width: 30%;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--neon-purple), transparent);
+    }
+
+    .data-stream-title::before {
+      left: 0;
+    }
+
+    .data-stream-title::after {
+      right: 0;
+    }
+
+    .data-flow-item {
+      background: rgba(22, 33, 62, 0.7);
+      border-left: 3px solid var(--neon-purple);
+      border-radius: 8px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      position: relative;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    }
+
+    .data-flow-item::before {
+      content: '';
+      position: absolute;
+      left: -3px;
+      top: 0;
+      bottom: 0;
+      width: 3px;
+      background: linear-gradient(180deg, var(--neon-purple), var(--neon-cyan));
+      border-radius: 3px 0 0 3px;
+    }
+
+    .data-flow-item:hover {
+      transform: translateX(10px);
+      box-shadow: 0 6px 25px rgba(157, 78, 221, 0.4);
+      border-left-color: var(--neon-cyan);
+    }
+
+    .data-flow-item::after {
+      content: '→';
+      position: absolute;
+      left: -20px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--neon-purple);
+      font-size: 1.5rem;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .data-flow-item:hover::after {
+      opacity: 1;
+    }
+
+    .data-flow-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+      gap: 1rem;
+    }
+
+    .data-flow-title {
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin: 0;
+      text-decoration: none;
+      transition: color 0.3s ease;
+    }
+
+    .data-flow-item:hover .data-flow-title {
+      color: var(--neon-cyan);
+    }
+
+    .data-flow-time {
+      color: var(--text-secondary);
+      font-size: 0.85rem;
+      white-space: nowrap;
+    }
+
+    .data-flow-content {
+      color: var(--text-secondary);
+      line-height: 1.6;
+      margin-bottom: 0.75rem;
+    }
+
+    .data-flow-author {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+    }
+
+    .data-flow-author-avatar {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 1px solid var(--neon-purple);
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 3rem;
+      background: rgba(22, 33, 62, 0.5);
+      border-radius: 12px;
+      border: 1px dashed var(--border-glow);
+    }
+
+    .empty-state-icon {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+      filter: drop-shadow(0 0 10px var(--neon-purple));
+    }
+
+    .action-section {
+      text-align: center;
+      margin-top: 3rem;
+      padding-top: 2rem;
+      border-top: 1px solid var(--border-glow);
+    }
+  </style>
+
+  <div class="mb-4">
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item">
+          <a href="{% url 'web:tree_index' %}">知识树</a>
+        </li>
+        <li class="breadcrumb-item active" aria-current="page">
+          {{ node.title }}
+        </li>
+      </ol>
+    </nav>
+  </div>
+
+  <!-- 核心节点 -->
+  <section class="core-node">
+    <div class="core-node-header">
+      {% with profile=node.author.profile %}
+        {% if profile.avatar %}
+          <img
+            src="{{ profile.avatar.url }}"
+            alt="{{ node.author.username }}"
+            class="core-node-avatar"
+          >
+        {% else %}
+          <div
+            class="core-node-avatar d-flex align-items-center justify-content-center"
+            style="background: linear-gradient(135deg, var(--neon-purple), var(--neon-pink)); color: white; font-size: 1.2rem; font-weight: bold;"
+          >
+            {{ node.author.username|first|upper }}
+          </div>
+        {% endif %}
+      {% endwith %}
+      <h2 class="core-node-title">{{ node.title }}</h2>
+    </div>
+    <div class="core-node-meta">
+      <span>👤 {{ node.author.username }}</span>
+      <span>·</span>
+      <span>🕐 {{ node.created_at|date:"Y-m-d H:i" }}</span>
+    </div>
+    <div class="core-node-content">
+      {{ node.content|linebreaks }}
+    </div>
+  </section>
+
+  <!-- 数据流 -->
+  <section class="data-stream">
+    <h3 class="data-stream-title">子观点 / 评论</h3>
+    {% if children %}
+      {% for child in children %}
+        <a
+          href="{% url 'web:node_detail' child.pk %}"
+          class="data-flow-item text-decoration-none d-block"
+        >
+          <div class="data-flow-header">
+            <h4 class="data-flow-title">{{ child.title }}</h4>
+            <span class="data-flow-time">{{ child.created_at|date:"Y-m-d H:i" }}</span>
+          </div>
+          <p class="data-flow-content">
+            {{ child.content|truncatechars:150 }}
+          </p>
+          <div class="data-flow-author">
+            {% with profile=child.author.profile %}
+              {% if profile.avatar %}
+                <img
+                  src="{{ profile.avatar.url }}"
+                  alt="{{ child.author.username }}"
+                  class="data-flow-author-avatar"
+                >
+              {% else %}
+                <div
+                  class="data-flow-author-avatar d-inline-flex align-items-center justify-content-center"
+                  style="background: linear-gradient(135deg, var(--neon-purple), var(--neon-pink)); color: white; font-size: 0.7rem; font-weight: bold;"
+                >
+                  {{ child.author.username|first|upper }}
+                </div>
+              {% endif %}
+            {% endwith %}
+            <span>by {{ child.author.username }}</span>
+          </div>
+        </a>
+      {% endfor %}
+    {% else %}
+      <div class="empty-state">
+        <div class="empty-state-icon">🌱</div>
+        <h4 style="color: var(--neon-purple); margin-bottom: 0.5rem;">还没有任何子观点</h4>
+        <p style="color: var(--text-secondary);">来补完这棵知识树吧</p>
+      </div>
+    {% endif %}
+  </section>
+
+  <section class="action-section">
+    {% if user.is_authenticated %}
+      <a
+        href="{% url 'web:create_node' %}?parent={{ node.pk }}"
+        class="btn btn-primary btn-lg"
+      >
+        ✨ 发表子观点
+      </a>
+    {% else %}
+      <a
+        href="{% url 'web:login' %}"
+        class="btn btn-outline-primary btn-lg"
+      >
+        登录后发表子观点
+      </a>
+    {% endif %}
+  </section>
+{% endblock %}
+
+

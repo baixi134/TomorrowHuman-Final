@@ -1,0 +1,78 @@
+{% extends "web/base.html" %}
+{% load static %}
+
+{% block title %}个人中心{% endblock %}
+
+{% block content %}
+  <div class="row">
+    <div class="col-md-4 text-center mb-4">
+      <div class="card">
+        <div class="card-body">
+          <div class="mb-3">
+            {% if profile.avatar %}
+              <img
+                src="{{ profile.avatar.url }}"
+                alt="头像"
+                class="rounded-circle"
+                style="width: 120px; height: 120px; object-fit: cover;"
+              >
+            {% else %}
+              <div
+                class="rounded-circle bg-secondary text-white d-inline-flex align-items-center justify-content-center"
+                style="width: 120px; height: 120px;"
+              >
+                无头像
+              </div>
+            {% endif %}
+          </div>
+          <h5 class="card-title mb-1">
+            {{ profile.nickname|default:request.user.username }}
+          </h5>
+          <p class="text-muted mb-2">
+            Lv.{{ profile.level }} · 💰{{ profile.coins }}
+          </p>
+          <p class="small text-muted mb-0">
+            {{ profile.bio|default:"这个人很神秘，还没有写个性签名。" }}
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-8">
+      <div class="card mb-4">
+        <div class="card-header">
+          经验值
+        </div>
+        <div class="card-body">
+          <div class="progress" style="height: 20px;">
+            <div
+              class="progress-bar"
+              role="progressbar"
+              style="width: {{ exp_percent }}%;"
+              aria-valuenow="{{ exp_percent }}"
+              aria-valuemin="0"
+              aria-valuemax="100"
+            >
+              {{ exp_percent }}%
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          修改资料
+        </div>
+        <div class="card-body">
+          <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit" class="btn btn-primary">保存修改</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}
+
+

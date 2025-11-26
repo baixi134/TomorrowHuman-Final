@@ -1,0 +1,42 @@
+{% extends "web/base.html" %}
+{% block title %}发布观点 - 知识树{% endblock %}
+
+{% block content %}
+  <div class="row justify-content-center">
+    <div class="col-12 col-md-8 col-lg-6">
+      <h1 class="h4 mb-4">
+        {% if parent %}
+          回复：{{ parent.title }}
+        {% else %}
+          发布新话题
+        {% endif %}
+      </h1>
+
+      <form method="post">
+        {% csrf_token %}
+        {% if parent %}
+          <input type="hidden" name="parent_id" value="{{ parent.pk }}">
+        {% endif %}
+
+        <div class="mb-3">
+          <label class="form-label" for="id_title">标题</label>
+          {{ form.title }}
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label" for="id_content">详细观点</label>
+          {{ form.content }}
+        </div>
+
+        <button type="submit" class="btn btn-primary">
+          发布
+        </button>
+        <a href="{% url 'web:tree_index' %}" class="btn btn-link">
+          返回知识树
+        </a>
+      </form>
+    </div>
+  </div>
+{% endblock %}
+
+
