@@ -1,0 +1,2 @@
+web: gunicorn TomorrowHuman.wsgi
+

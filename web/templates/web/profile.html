@@ -4,7 +4,73 @@
 {% block title %}个人中心{% endblock %}
 
 {% block content %}
+  <style>
+    .profile-sidebar {
+      background: rgba(22, 33, 62, 0.8) !important;
+      border: 1px solid rgba(0, 255, 255, 0.3) !important;
+      box-shadow: 0 0 15px rgba(0, 255, 255, 0.1);
+    }
+
+    .profile-sidebar .card-body {
+      padding: 15px !important;
+    }
+
+    .sidebar-title {
+      color: var(--neon-cyan) !important;
+      border-bottom: 1px solid rgba(0, 255, 255, 0.3);
+      padding-bottom: 8px;
+      margin-bottom: 12px;
+      font-weight: bold;
+      font-size: 14px;
+      text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+    }
+
+    .sidebar-link {
+      display: block;
+      padding: 10px 12px;
+      border-radius: 6px;
+      text-decoration: none;
+      color: var(--text-primary) !important;
+      background: rgba(0, 255, 255, 0.1);
+      border: 1px solid rgba(0, 255, 255, 0.2);
+      transition: all 0.3s ease;
+      font-size: 13px;
+    }
+
+    .sidebar-link:hover {
+      background: rgba(0, 255, 255, 0.2);
+      border-color: rgba(0, 255, 255, 0.5);
+      box-shadow: 0 0 15px rgba(0, 255, 255, 0.4);
+      color: var(--neon-cyan) !important;
+      transform: translateX(5px);
+      text-shadow: 0 0 10px rgba(0, 255, 255, 0.8);
+    }
+  </style>
+
   <div class="row">
+    <!-- 左侧导航栏 -->
+    <div class="col-md-2 mb-4">
+      <div class="card profile-sidebar">
+        <div class="card-body">
+          <h6 class="card-title sidebar-title">
+            导航菜单
+          </h6>
+          <ul class="list-unstyled mb-0">
+            <li class="mb-2">
+              <a href="{% url 'web:inventory' %}" class="sidebar-link">
+                🎒 背包
+              </a>
+            </li>
+            <li class="mb-2">
+              <a href="{% url 'web:daily_checkin' %}" class="sidebar-link">
+                📅 签到
+              </a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
     <div class="col-md-4 text-center mb-4">
       <div class="card">
         <div class="card-body">
@@ -38,7 +104,7 @@
       </div>
     </div>
 
-    <div class="col-md-8">
+    <div class="col-md-6">
       <div class="card mb-4">
         <div class="card-header">
           经验值

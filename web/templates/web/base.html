@@ -129,10 +129,7 @@
           <ul class="navbar-nav ms-auto align-items-center">
             {% if user.is_authenticated %}
               <li class="nav-item me-3">
-                <a
-                  class="nav-link d-flex align-items-center"
-                  href="{% url 'web:profile' %}"
-                >
+                <span class="nav-link d-flex align-items-center" style="cursor: default;">
                   {% with profile=user.profile %}
                     {% if profile.avatar %}
                       <img
@@ -153,13 +150,7 @@
                       💰{{ profile.coins }} Lv.{{ profile.level }}
                     </span>
                   {% endwith %}
-                </a>
-              </li>
-              <li class="nav-item me-3">
-                <a class="nav-link" href="{% url 'web:tree_index' %}">🌍 知识世界</a>
-              </li>
-              <li class="nav-item me-3">
-                <a class="nav-link" href="{% url 'web:daily_checkin' %}">📅 签到</a>
+                </span>
               </li>
               <li class="nav-item">
                 <a class="nav-link" href="{% url 'web:logout' %}">登出</a>

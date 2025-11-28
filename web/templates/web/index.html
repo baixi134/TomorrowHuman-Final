@@ -1,25 +1,1066 @@
 {% extends 'web/base.html' %}
-{% block title %}首页{% endblock %}
+{% load static %}
+{% block title %}赛博朋克虚拟广场{% endblock %}
 
 {% block content %}
-  <div class="text-center py-5">
-    <h1 class="mb-3">{{ message }}</h1>
-    {% if not user.is_authenticated %}
-      <p>
-        <a class="btn btn-primary me-2" href="{% url 'web:login' %}">去登录</a>
-        <a class="btn btn-outline-secondary" href="{% url 'web:register' %}">去注册</a>
-      </p>
-    {% endif %}
+  <!-- 左侧可伸缩侧边栏 -->
+  <div class="sidebar" id="sidebar">
+    <button class="sidebar-toggle" id="sidebarToggle" aria-label="切换侧边栏">
+      <span class="toggle-icon">◀</span>
+    </button>
+    <div class="sidebar-content">
+      <a href="{% url 'web:tree_index' %}" class="sidebar-item" title="数据中心">
+        <span class="sidebar-icon">🧠</span>
+        <span class="sidebar-text">数据中心</span>
+      </a>
+      <a href="{% url 'web:shop' %}" class="sidebar-item" title="黑市">
+        <span class="sidebar-icon">🛒</span>
+        <span class="sidebar-text">黑市</span>
+      </a>
+      <a href="{% url 'web:profile' %}" class="sidebar-item" title="安全屋">
+        <span class="sidebar-icon">🏠</span>
+        <span class="sidebar-text">安全屋</span>
+      </a>
+      <a href="{% url 'web:ai_assistant' %}" class="sidebar-item" title="AI助手">
+        <span class="sidebar-icon">🤖</span>
+        <span class="sidebar-text">AI助手</span>
+      </a>
+    </div>
   </div>
-{% endblock %}
 
-{
-  "cells": [],
-  "metadata": {
-    "language_info": {
-      "name": "python"
+  <div class="city-stage">
+    {% for user_obj in latest_users %}
+      {% with profile=user_obj.profile %}
+        <div 
+          class="citizen" 
+          data-user-id="{{ user_obj.id }}"
+          data-username="{{ user_obj.username }}"
+          data-nickname="{{ profile.nickname|default:user_obj.username }}"
+          data-avatar-url="{% if profile.avatar %}{{ profile.avatar.url }}{% else %}{% endif %}"
+          data-level="{{ profile.level|default:1 }}"
+          {% if user.is_authenticated %}data-is-current-user="{% if user_obj.id == user.id %}true{% else %}false{% endif %}"{% else %}data-is-current-user="false"{% endif %}
+        >
+          {% if profile.avatar %}
+            <img
+              src="{{ profile.avatar.url }}"
+              alt="{{ profile.nickname|default:user_obj.username }}"
+              class="citizen-avatar"
+            >
+          {% else %}
+            <div class="citizen-avatar citizen-avatar-placeholder">
+              {{ user_obj.username|first|upper }}
+            </div>
+          {% endif %}
+          <div class="citizen-tooltip">
+            {{ profile.nickname|default:user_obj.username }} | Lv.{{ profile.level|default:1 }}
+          </div>
+        </div>
+      {% endwith %}
+    {% endfor %}
+
+    {% for plot in plots %}
+      <div 
+        class="land-plot {% if plot.owner %}land-plot-owned{% else %}land-plot-available{% endif %}"
+        data-id="{{ plot.id }}"
+        data-price="{{ plot.price }}"
+        data-name="{{ plot.name }}"
+        data-owner-id="{% if plot.owner %}{{ plot.owner.id }}{% endif %}"
+        data-owner-name="{% if plot.owner %}{{ plot.owner.profile.nickname|default:plot.owner.username }}{% endif %}"
+        data-is-mine="{% if plot.owner and current_user_id and plot.owner.id == current_user_id %}yes{% else %}no{% endif %}"
+        style="left: {{ plot.x_pos|default:0 }}%; top: {{ plot.y_pos|default:0 }}%; z-index: {{ plot.y_pos|default:0 }};"
+      >
+        {% if plot.owner %}
+          <img 
+            src="{% static 'web/images/plot_building.png' %}" 
+            alt="{{ plot.name }}"
+            class="land-plot-image"
+          >
+        {% else %}
+          <img 
+            src="{% static 'web/images/plot_empty.png' %}" 
+            alt="{{ plot.name }}"
+            class="land-plot-image land-plot-empty"
+          >
+        {% endif %}
+        <div class="land-plot-tooltip">{{ plot.name }}</div>
+      </div>
+    {% endfor %}
+
+  </div>
+
+  <style>
+    /* 侧边栏样式 */
+    .sidebar {
+      position: fixed;
+      left: 0;
+      top: 0;
+      height: 100vh;
+      width: 200px;
+      background: rgba(22, 33, 62, 0.95);
+      backdrop-filter: blur(10px);
+      border-right: 2px solid rgba(0, 255, 255, 0.3);
+      box-shadow: 
+        2px 0 20px rgba(0, 255, 255, 0.2),
+        inset -2px 0 20px rgba(157, 78, 221, 0.1);
+      z-index: 1000;
+      transition: transform 0.3s ease, width 0.3s ease;
+      display: flex;
+      flex-direction: column;
+      padding-top: 80px;
     }
-  },
-  "nbformat": 4,
-  "nbformat_minor": 2
-}
+
+    .sidebar.collapsed {
+      width: 60px;
+    }
+
+    .sidebar-toggle {
+      position: absolute;
+      top: 20px;
+      right: -15px;
+      width: 30px;
+      height: 30px;
+      background: rgba(22, 33, 62, 0.95);
+      border: 2px solid rgba(0, 255, 255, 0.5);
+      border-radius: 50%;
+      color: #00ffff;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s ease;
+      box-shadow: 
+        0 0 10px rgba(0, 255, 255, 0.3),
+        inset 0 0 10px rgba(0, 255, 255, 0.1);
+      z-index: 1001;
+    }
+
+    .sidebar-toggle:hover {
+      background: rgba(0, 255, 255, 0.2);
+      box-shadow: 
+        0 0 15px rgba(0, 255, 255, 0.5),
+        inset 0 0 15px rgba(0, 255, 255, 0.2);
+      transform: scale(1.1);
+    }
+
+    .toggle-icon {
+      font-size: 14px;
+      transition: transform 0.3s ease;
+      display: inline-block;
+    }
+
+    .sidebar.collapsed .toggle-icon {
+      transform: rotate(180deg);
+    }
+
+    .sidebar-content {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      padding: 20px 15px;
+      overflow-y: auto;
+    }
+
+    .sidebar-item {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      padding: 15px;
+      text-decoration: none;
+      color: #e0e0e0;
+      border: 1px solid rgba(0, 255, 255, 0.2);
+      border-radius: 8px;
+      background: rgba(0, 0, 0, 0.3);
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .sidebar-item::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 3px;
+      height: 100%;
+      background: transparent;
+      transition: all 0.3s ease;
+    }
+
+    .sidebar-item:hover {
+      background: rgba(0, 255, 255, 0.1);
+      border-color: rgba(0, 255, 255, 0.5);
+      transform: translateX(5px);
+      box-shadow: 
+        0 0 15px rgba(0, 255, 255, 0.3),
+        inset 0 0 15px rgba(0, 255, 255, 0.05);
+    }
+
+    .sidebar-item:hover::before {
+      background: #00ffff;
+      box-shadow: 0 0 10px rgba(0, 255, 255, 0.8);
+    }
+
+    .sidebar-item:nth-child(1):hover {
+      border-color: rgba(0, 255, 255, 0.5);
+      box-shadow: 
+        0 0 15px rgba(0, 255, 255, 0.3),
+        inset 0 0 15px rgba(0, 255, 255, 0.05);
+    }
+
+    .sidebar-item:nth-child(1):hover::before {
+      background: #00ffff;
+    }
+
+    .sidebar-item:nth-child(2):hover {
+      border-color: rgba(157, 78, 221, 0.5);
+      box-shadow: 
+        0 0 15px rgba(157, 78, 221, 0.3),
+        inset 0 0 15px rgba(157, 78, 221, 0.05);
+    }
+
+    .sidebar-item:nth-child(2):hover::before {
+      background: #9d4edd;
+    }
+
+    .sidebar-item:nth-child(3):hover {
+      border-color: rgba(255, 215, 0, 0.5);
+      box-shadow: 
+        0 0 15px rgba(255, 215, 0, 0.3),
+        inset 0 0 15px rgba(255, 215, 0, 0.05);
+    }
+
+    .sidebar-item:nth-child(3):hover::before {
+      background: #ffd700;
+    }
+
+    .sidebar-item:nth-child(4):hover {
+      border-color: rgba(0, 255, 127, 0.5);
+      box-shadow: 
+        0 0 15px rgba(0, 255, 127, 0.3),
+        inset 0 0 15px rgba(0, 255, 127, 0.05);
+    }
+
+    .sidebar-item:nth-child(4):hover::before {
+      background: #00ff7f;
+    }
+
+    .sidebar-icon {
+      font-size: 24px;
+      min-width: 24px;
+      text-align: center;
+      filter: drop-shadow(0 0 5px currentColor);
+    }
+
+    .sidebar-text {
+      font-size: 16px;
+      font-weight: 500;
+      white-space: nowrap;
+      transition: opacity 0.3s ease;
+    }
+
+    .sidebar.collapsed .sidebar-text {
+      opacity: 0;
+      width: 0;
+      overflow: hidden;
+    }
+
+    .sidebar.collapsed .sidebar-content {
+      padding: 20px 10px;
+    }
+
+    .sidebar.collapsed .sidebar-item {
+      justify-content: center;
+      padding: 15px 10px;
+      gap: 0;
+    }
+
+    .sidebar.collapsed .sidebar-icon {
+      margin: 0 auto;
+    }
+
+    /* 调整主内容区域，为侧边栏留出空间 */
+    .city-stage {
+      position: relative;
+      margin-left: 200px;
+      width: calc(100% - 200px);
+      height: 80vh;
+      min-height: 600px;
+      background: linear-gradient(
+        135deg,
+        #0a0a0a 0%,
+        #1a1a2e 25%,
+        #16213e 50%,
+        #0f3460 75%,
+        #0a0a0a 100%
+      );
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      overflow: hidden;
+      border-radius: 12px;
+      box-shadow: 
+        0 0 50px rgba(0, 255, 255, 0.3),
+        inset 0 0 100px rgba(157, 78, 221, 0.1);
+      transition: width 0.3s ease, margin-left 0.3s ease;
+    }
+
+    .sidebar.collapsed ~ .city-stage {
+      margin-left: 60px;
+      width: calc(100% - 60px);
+    }
+
+    /* 如果有背景图片，可以取消注释下面这行 */
+    /* background-image: url('{% static "web/images/city_bg.jpg" %}'); */
+
+    .citizen {
+      position: absolute;
+      cursor: pointer;
+      transition: transform 0.3s ease, filter 0.3s ease;
+      z-index: 10;
+    }
+
+    .citizen:hover {
+      transform: translateY(-5px) scale(1.1);
+      z-index: 100;
+    }
+
+    .citizen-avatar {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid transparent;
+      box-shadow: 
+        0 0 10px rgba(0, 255, 255, 0.6),
+        0 0 20px rgba(157, 78, 221, 0.4),
+        0 0 30px rgba(255, 0, 110, 0.3),
+        inset 0 0 10px rgba(0, 255, 255, 0.2);
+      animation: neonPulse 2s ease-in-out infinite alternate;
+    }
+
+    .citizen-avatar-placeholder {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #9d4edd, #ff006e);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-weight: bold;
+      font-size: 20px;
+      text-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+    }
+
+    @keyframes neonPulse {
+      0% {
+        box-shadow: 
+          0 0 10px rgba(0, 255, 255, 0.6),
+          0 0 20px rgba(157, 78, 221, 0.4),
+          0 0 30px rgba(255, 0, 110, 0.3),
+          inset 0 0 10px rgba(0, 255, 255, 0.2);
+      }
+      100% {
+        box-shadow: 
+          0 0 20px rgba(0, 255, 255, 0.9),
+          0 0 30px rgba(157, 78, 221, 0.6),
+          0 0 40px rgba(255, 0, 110, 0.5),
+          inset 0 0 15px rgba(0, 255, 255, 0.3);
+      }
+    }
+
+    .citizen-tooltip {
+      position: absolute;
+      bottom: 100%;
+      left: 50%;
+      transform: translateX(-50%) translateY(-10px);
+      background: rgba(0, 0, 0, 0.85);
+      color: #fff;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      white-space: nowrap;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease, transform 0.3s ease;
+      border: 1px solid rgba(0, 255, 255, 0.5);
+      box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+      z-index: 1000;
+    }
+
+    .citizen-tooltip::after {
+      content: '';
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      border: 5px solid transparent;
+      border-top-color: rgba(0, 0, 0, 0.85);
+    }
+
+    .citizen:hover .citizen-tooltip {
+      opacity: 1;
+      transform: translateX(-50%) translateY(-15px);
+    }
+
+    /* 为不同用户添加不同的霓虹色彩 */
+    .citizen:nth-child(3n+1) .citizen-avatar {
+      box-shadow: 
+        0 0 10px rgba(0, 255, 255, 0.6),
+        0 0 20px rgba(0, 255, 255, 0.4),
+        0 0 30px rgba(0, 255, 255, 0.3),
+        inset 0 0 10px rgba(0, 255, 255, 0.2);
+    }
+
+    .citizen:nth-child(3n+2) .citizen-avatar {
+      box-shadow: 
+        0 0 10px rgba(157, 78, 221, 0.6),
+        0 0 20px rgba(157, 78, 221, 0.4),
+        0 0 30px rgba(157, 78, 221, 0.3),
+        inset 0 0 10px rgba(157, 78, 221, 0.2);
+    }
+
+    .citizen:nth-child(3n) .citizen-avatar {
+      box-shadow: 
+        0 0 10px rgba(255, 0, 110, 0.6),
+        0 0 20px rgba(255, 0, 110, 0.4),
+        0 0 30px rgba(255, 0, 110, 0.3),
+        inset 0 0 10px rgba(255, 0, 110, 0.2);
+    }
+
+    /* 霓虹招牌样式 */
+    .neon-sign {
+      position: absolute;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 15px 25px;
+      text-decoration: none;
+      background: rgba(0, 0, 0, 0.7);
+      border: 2px solid;
+      border-radius: 8px;
+      transition: all 0.3s ease;
+      z-index: 20;
+      backdrop-filter: blur(5px);
+      min-width: 180px;
+      box-shadow: 
+        0 0 10px currentColor,
+        inset 0 0 10px rgba(255, 255, 255, 0.1);
+    }
+
+    .neon-sign-cyan {
+      color: #00ffff;
+      border-color: #00ffff;
+      text-shadow: 
+        0 0 5px #00ffff,
+        0 0 10px #00ffff,
+        0 0 15px #00ffff,
+        0 0 20px #00ffff;
+      box-shadow: 
+        0 0 10px rgba(0, 255, 255, 0.5),
+        0 0 20px rgba(0, 255, 255, 0.3),
+        inset 0 0 10px rgba(0, 255, 255, 0.1);
+    }
+
+    .neon-sign-purple {
+      color: #9d4edd;
+      border-color: #9d4edd;
+      text-shadow: 
+        0 0 5px #9d4edd,
+        0 0 10px #9d4edd,
+        0 0 15px #9d4edd,
+        0 0 20px #9d4edd;
+      box-shadow: 
+        0 0 10px rgba(157, 78, 221, 0.5),
+        0 0 20px rgba(157, 78, 221, 0.3),
+        inset 0 0 10px rgba(157, 78, 221, 0.1);
+    }
+
+    .neon-sign-yellow {
+      color: #ffd700;
+      border-color: #ffd700;
+      text-shadow: 
+        0 0 5px #ffd700,
+        0 0 10px #ffd700,
+        0 0 15px #ffd700,
+        0 0 20px #ffd700;
+      box-shadow: 
+        0 0 10px rgba(255, 215, 0, 0.5),
+        0 0 20px rgba(255, 215, 0, 0.3),
+        inset 0 0 10px rgba(255, 215, 0, 0.1);
+    }
+
+    .neon-sign:hover {
+      transform: translateY(-3px) scale(1.05);
+      animation: neonShake 0.5s ease-in-out;
+      filter: brightness(1.3);
+    }
+
+    .neon-sign-cyan:hover {
+      box-shadow: 
+        0 0 20px rgba(0, 255, 255, 0.8),
+        0 0 30px rgba(0, 255, 255, 0.6),
+        0 0 40px rgba(0, 255, 255, 0.4),
+        inset 0 0 15px rgba(0, 255, 255, 0.2);
+    }
+
+    .neon-sign-purple:hover {
+      box-shadow: 
+        0 0 20px rgba(157, 78, 221, 0.8),
+        0 0 30px rgba(157, 78, 221, 0.6),
+        0 0 40px rgba(157, 78, 221, 0.4),
+        inset 0 0 15px rgba(157, 78, 221, 0.2);
+    }
+
+    .neon-sign-yellow:hover {
+      box-shadow: 
+        0 0 20px rgba(255, 215, 0, 0.8),
+        0 0 30px rgba(255, 215, 0, 0.6),
+        0 0 40px rgba(255, 215, 0, 0.4),
+        inset 0 0 15px rgba(255, 215, 0, 0.2);
+    }
+
+    @keyframes neonShake {
+      0%, 100% { transform: translateY(-3px) scale(1.05) translateX(0); }
+      25% { transform: translateY(-3px) scale(1.05) translateX(-2px); }
+      75% { transform: translateY(-3px) scale(1.05) translateX(2px); }
+    }
+
+    .sign-icon {
+      font-size: 32px;
+      margin-bottom: 8px;
+      filter: drop-shadow(0 0 5px currentColor);
+    }
+
+    .sign-text {
+      font-size: 18px;
+      font-weight: bold;
+      letter-spacing: 2px;
+      margin-bottom: 4px;
+      font-family: 'Courier New', monospace;
+    }
+
+    .sign-subtitle {
+      font-size: 12px;
+      opacity: 0.9;
+      letter-spacing: 1px;
+      font-family: 'Courier New', monospace;
+    }
+
+
+    /* 模态框样式 */
+    .modal-content {
+      box-shadow: 
+        0 0 30px rgba(0, 255, 255, 0.3),
+        inset 0 0 30px rgba(157, 78, 221, 0.1);
+    }
+
+    .modal-content input:focus {
+      background: #16213e !important;
+      border-color: #00ffff !important;
+      color: #e0e0e0 !important;
+      box-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+      outline: none;
+    }
+
+    .modal-content .btn-primary:hover {
+      box-shadow: 0 0 20px rgba(157, 78, 221, 0.8);
+      transform: translateY(-2px);
+    }
+
+    .btn-close-white {
+      filter: invert(1) grayscale(100%) brightness(200%);
+    }
+
+    /* 地块样式 */
+    .land-plot {
+      position: absolute;
+      cursor: pointer;
+      transition: transform 0.3s ease, filter 0.3s ease;
+      transform-style: preserve-3d;
+    }
+
+    .land-plot:hover {
+      transform: translateY(-10px) scale(1.15);
+      filter: brightness(1.3);
+    }
+
+    /* 地块图片样式 */
+    .land-plot-image {
+      width: 70px;
+      height: auto;
+      display: block;
+      filter: drop-shadow(0 0 10px rgba(0, 255, 255, 0.6)) 
+              drop-shadow(0 0 20px rgba(0, 255, 255, 0.4))
+              drop-shadow(0 5px 15px rgba(0, 0, 0, 0.5));
+      transition: all 0.3s ease;
+    }
+
+    /* 空地块图片样式 - 透明度和浮动动画 */
+    .land-plot-empty {
+      opacity: 0.8;
+      animation: plotFloat 3s ease-in-out infinite;
+    }
+
+    @keyframes plotFloat {
+      0%, 100% {
+        transform: translateY(0px);
+      }
+      50% {
+        transform: translateY(-8px);
+      }
+    }
+
+    /* 已售地块图片样式 - 发光效果 */
+    .land-plot-owned .land-plot-image {
+      filter: drop-shadow(0 0 15px rgba(157, 78, 221, 0.8)) 
+              drop-shadow(0 0 25px rgba(157, 78, 221, 0.6))
+              drop-shadow(0 5px 15px rgba(0, 0, 0, 0.5));
+    }
+
+    .land-plot:hover .land-plot-image {
+      filter: drop-shadow(0 0 20px rgba(0, 255, 255, 0.9)) 
+              drop-shadow(0 0 30px rgba(0, 255, 255, 0.7))
+              drop-shadow(0 8px 20px rgba(0, 0, 0, 0.6));
+    }
+
+    .land-plot-owned:hover .land-plot-image {
+      filter: drop-shadow(0 0 25px rgba(157, 78, 221, 1)) 
+              drop-shadow(0 0 35px rgba(157, 78, 221, 0.8))
+              drop-shadow(0 8px 20px rgba(0, 0, 0, 0.6));
+    }
+
+    /* 地块提示框 */
+    .land-plot-tooltip {
+      position: absolute;
+      bottom: 100%;
+      left: 50%;
+      transform: translateX(-50%) translateY(-10px);
+      background: rgba(0, 0, 0, 0.85);
+      color: #fff;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      white-space: nowrap;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease, transform 0.3s ease;
+      border: 1px solid rgba(0, 255, 255, 0.5);
+      box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+      z-index: 1000;
+    }
+
+    .land-plot-tooltip::after {
+      content: '';
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      border: 4px solid transparent;
+      border-top-color: rgba(0, 0, 0, 0.85);
+    }
+
+    .land-plot:hover .land-plot-tooltip {
+      opacity: 1;
+      transform: translateX(-50%) translateY(-15px);
+    }
+  </style>
+
+  <!-- 地块详情和购买模态框 -->
+  <div class="modal fade" id="landPlotModal" tabindex="-1" aria-labelledby="landPlotModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content" style="background: #1a1a2e; border: 1px solid rgba(0, 255, 255, 0.3);">
+        <div class="modal-header" style="border-bottom: 1px solid rgba(0, 255, 255, 0.3);">
+          <h5 class="modal-title" id="landPlotModalLabel" style="color: #00ffff;">地块详情</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body text-center" style="color: #e0e0e0;">
+          <form action="{% url 'web:buy_land' %}" method="POST" id="buy-land-form">
+            {% csrf_token %}
+            <input type="hidden" name="plot_id" id="buy-plot-id" value="">
+            
+            <p id="plot-price-info" style="color: #00ff00; font-size: 18px; margin-bottom: 1.5rem; display: none;">
+              <span style="font-size: 24px;">💰</span> 价格：<strong id="price-display"></strong> 金币
+            </p>
+            
+            <p id="plot-owner-info" style="color: #9d4edd; font-size: 16px; margin-bottom: 1.5rem; display: none;">
+              所有者：<strong id="owner-display"></strong>
+            </p>
+            
+            <div id="buy-btn-container" style="display: none;">
+              <button type="submit" class="btn btn-primary w-100" style="background: linear-gradient(135deg, #00ff00, #00cc00); border: none; color: #000;">
+                💰 购买地皮
+              </button>
+            </div>
+            
+            <div id="my-plot-btn-container" style="display: none; margin-top: 1rem;">
+              <button type="button" class="btn btn-primary w-100" style="background: linear-gradient(135deg, #00ffff, #0099cc); border: none; color: #000;" onclick="alert('装修功能开发中...');">
+                🏠 进入/装修
+              </button>
+            </div>
+            
+            <div id="login-prompt-buy" style="display: none; color: #b0b0b0; padding: 1rem;">
+              请先<a href="{% url 'web:login' %}" style="color: #00ffff;">登录</a>以购买地块
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 用户资料和打赏模态框 -->
+  <div class="modal fade" id="userProfileModal" tabindex="-1" aria-labelledby="userProfileModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content" style="background: #1a1a2e; border: 1px solid rgba(0, 255, 255, 0.3);">
+        <div class="modal-header" style="border-bottom: 1px solid rgba(0, 255, 255, 0.3);">
+          <h5 class="modal-title" id="userProfileModalLabel" style="color: #00ffff;">用户资料</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body text-center" style="color: #e0e0e0;">
+          <div id="modalAvatar" class="mb-3">
+            <!-- 头像将动态填充 -->
+          </div>
+          <h4 id="modalNickname" style="color: #00ffff; margin-bottom: 0.5rem;"></h4>
+          <p id="modalLevel" style="color: #b0b0b0; margin-bottom: 1.5rem;"></p>
+          
+          <div id="transferFormContainer" style="display: none;">
+            <form method="POST" action="{% url 'web:transfer_coins' %}">
+              {% csrf_token %}
+              <input type="hidden" name="recipient_id" id="modalRecipientId">
+              <div class="mb-3">
+                <label for="transferAmount" class="form-label" style="color: #e0e0e0;">打赏金额</label>
+                <input 
+                  type="number" 
+                  class="form-control" 
+                  id="transferAmount" 
+                  name="amount" 
+                  min="1" 
+                  required
+                  style="background: #16213e; border: 1px solid rgba(0, 255, 255, 0.3); color: #e0e0e0;"
+                >
+              </div>
+              <button type="submit" class="btn btn-primary w-100" style="background: linear-gradient(135deg, #9d4edd, #ff006e); border: none;">
+                💰 打赏金币
+              </button>
+            </form>
+          </div>
+          <div id="selfTransferMessage" style="display: none; color: #ffd700; padding: 1rem;">
+            ⚠️ 不能给自己转账
+          </div>
+          <div id="loginPrompt" style="display: none; color: #b0b0b0; padding: 1rem;">
+            请先登录以打赏
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 传递用户认证状态 -->
+  <script id="auth-data" type="application/json">{% if user.is_authenticated %}"true"{% else %}"false"{% endif %}</script>
+  <script>
+    // 将 Django 模板变量转换为 JavaScript 变量
+    var isUserAuthenticated = JSON.parse(document.getElementById('auth-data').textContent) === "true";
+    
+    // 侧边栏展开/收缩功能
+    document.addEventListener('DOMContentLoaded', function() {
+      const sidebar = document.getElementById('sidebar');
+      const sidebarToggle = document.getElementById('sidebarToggle');
+      
+      // 从本地存储读取侧边栏状态
+      const savedState = localStorage.getItem('sidebarCollapsed');
+      if (savedState === 'true') {
+        sidebar.classList.add('collapsed');
+      }
+      
+      // 切换侧边栏状态
+      if (sidebarToggle) {
+        sidebarToggle.addEventListener('click', function() {
+          sidebar.classList.toggle('collapsed');
+          // 保存状态到本地存储
+          localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed'));
+        });
+      }
+    });
+    
+    document.addEventListener('DOMContentLoaded', function() {
+      const citizens = document.querySelectorAll('.citizen');
+      
+      citizens.forEach(function(citizen) {
+        // 生成随机位置
+        const topPercent = 10 + Math.random() * 70; // 10% - 80%
+        const leftPercent = 5 + Math.random() * 90; // 5% - 95%
+        
+        citizen.style.top = topPercent + '%';
+        citizen.style.left = leftPercent + '%';
+        
+        // 添加随机延迟动画，让它们更有生命力
+        const delay = Math.random() * 2;
+        citizen.style.animationDelay = delay + 's';
+        
+        // 添加点击事件
+        citizen.addEventListener('click', function() {
+          const userId = this.getAttribute('data-user-id');
+          const username = this.getAttribute('data-username');
+          const nickname = this.getAttribute('data-nickname');
+          const avatarUrl = this.getAttribute('data-avatar-url');
+          const level = this.getAttribute('data-level');
+          const isCurrentUserAttr = this.getAttribute('data-is-current-user');
+          const isCurrentUser = isCurrentUserAttr === 'true';
+          
+          // 获取模态框元素
+          const modalElement = document.getElementById('userProfileModal');
+          if (!modalElement) {
+            console.error('模态框元素不存在');
+            return;
+          }
+          
+          // 填充模态框内容
+          const modalAvatar = document.getElementById('modalAvatar');
+          const modalNickname = document.getElementById('modalNickname');
+          const modalLevel = document.getElementById('modalLevel');
+          const modalRecipientId = document.getElementById('modalRecipientId');
+          const transferFormContainer = document.getElementById('transferFormContainer');
+          const selfTransferMessage = document.getElementById('selfTransferMessage');
+          const loginPrompt = document.getElementById('loginPrompt');
+          
+          // 确保所有必要的元素都存在
+          if (!modalAvatar || !modalNickname || !modalLevel) {
+            console.error('模态框内容元素不存在');
+            return;
+          }
+          
+          // 设置头像 - 使用安全的 DOM 操作
+          modalAvatar.innerHTML = ''; // 清空内容
+          if (avatarUrl && avatarUrl.trim() !== '' && avatarUrl !== "''") {
+            const img = document.createElement('img');
+            img.src = avatarUrl;
+            img.alt = nickname || username || '用户头像';
+            img.className = 'rounded-circle';
+            img.style.cssText = 'width: 100px; height: 100px; object-fit: cover; border: 3px solid #00ffff; box-shadow: 0 0 20px rgba(0, 255, 255, 0.5);';
+            img.onerror = function() {
+              // 如果图片加载失败，显示占位符
+              const initial = (username && username.length > 0) ? username.charAt(0).toUpperCase() : '?';
+              const placeholder = document.createElement('div');
+              placeholder.className = 'rounded-circle d-inline-flex align-items-center justify-content-center';
+              placeholder.style.cssText = 'width: 100px; height: 100px; background: linear-gradient(135deg, #9d4edd, #ff006e); color: #fff; font-size: 36px; font-weight: bold; border: 3px solid #00ffff; box-shadow: 0 0 20px rgba(0, 255, 255, 0.5);';
+              placeholder.textContent = initial;
+              modalAvatar.innerHTML = '';
+              modalAvatar.appendChild(placeholder);
+            };
+            modalAvatar.appendChild(img);
+          } else {
+            const initial = (username && username.length > 0) ? username.charAt(0).toUpperCase() : '?';
+            const placeholder = document.createElement('div');
+            placeholder.className = 'rounded-circle d-inline-flex align-items-center justify-content-center';
+            placeholder.style.cssText = 'width: 100px; height: 100px; background: linear-gradient(135deg, #9d4edd, #ff006e); color: #fff; font-size: 36px; font-weight: bold; border: 3px solid #00ffff; box-shadow: 0 0 20px rgba(0, 255, 255, 0.5);';
+            placeholder.textContent = initial;
+            modalAvatar.appendChild(placeholder);
+          }
+          
+          // 设置昵称和等级
+          modalNickname.textContent = nickname || username || '未知用户';
+          modalLevel.textContent = 'Lv.' + (level || '1');
+          
+          // 检查用户登录状态和是否是当前用户
+          if (!isUserAuthenticated) {
+            // 未登录：显示登录提示，隐藏其他
+            if (transferFormContainer) transferFormContainer.style.display = 'none';
+            if (selfTransferMessage) selfTransferMessage.style.display = 'none';
+            if (loginPrompt) loginPrompt.style.display = 'block';
+          } else if (isCurrentUser) {
+            // 已登录但点击自己：显示不能给自己转账提示
+            if (transferFormContainer) transferFormContainer.style.display = 'none';
+            if (loginPrompt) loginPrompt.style.display = 'none';
+            if (selfTransferMessage) selfTransferMessage.style.display = 'block';
+          } else {
+            // 已登录且点击他人：显示打赏表单
+            if (selfTransferMessage) selfTransferMessage.style.display = 'none';
+            if (loginPrompt) loginPrompt.style.display = 'none';
+            if (transferFormContainer) {
+              transferFormContainer.style.display = 'block';
+              // 设置接收者ID
+              if (modalRecipientId) {
+                modalRecipientId.value = userId || '';
+              }
+              // 重置金额输入
+              const transferAmount = document.getElementById('transferAmount');
+              if (transferAmount) {
+                transferAmount.value = '';
+              }
+            }
+          }
+          
+          // 显示模态框
+          try {
+            const modal = new bootstrap.Modal(modalElement);
+            modal.show();
+          } catch (error) {
+            console.error('显示模态框失败:', error);
+          }
+        });
+      });
+    });
+
+    // 地块点击事件
+    document.addEventListener('DOMContentLoaded', function() {
+      const landPlots = document.querySelectorAll('.land-plot');
+      const currentUserId = {% if current_user_id %}{{ current_user_id }}{% else %}null{% endif %};
+      
+      landPlots.forEach(function(plot) {
+        plot.addEventListener('click', function() {
+          // 获取地块完整数据属性
+          const plotId = this.getAttribute('data-id');
+          const plotPrice = this.getAttribute('data-price');
+          const plotName = this.getAttribute('data-name');
+          const plotOwnerId = this.getAttribute('data-owner-id');
+          const plotOwnerName = this.getAttribute('data-owner-name');
+          const plotIsMine = this.getAttribute('data-is-mine');
+          
+          // 获取模态框元素
+          const modalElement = document.getElementById('landPlotModal');
+          if (!modalElement) {
+            console.error('地块模态框元素不存在');
+            return;
+          }
+          
+          // 获取模态框内的元素
+          const modalTitle = document.getElementById('landPlotModalLabel');
+          const plotPriceInfo = document.getElementById('plot-price-info');
+          const priceDisplay = document.getElementById('price-display');
+          const plotOwnerInfo = document.getElementById('plot-owner-info');
+          const ownerDisplay = document.getElementById('owner-display');
+          const buyBtnContainer = document.getElementById('buy-btn-container');
+          const myPlotBtnContainer = document.getElementById('my-plot-btn-container');
+          const loginPromptBuy = document.getElementById('login-prompt-buy');
+          const buyPlotIdInput = document.getElementById('buy-plot-id');
+          
+          // 设置模态框标题为地块名字
+          if (modalTitle) {
+            modalTitle.textContent = plotName || '地块详情';
+          }
+          
+          // 设置地块ID到隐藏输入框
+          if (buyPlotIdInput) {
+            buyPlotIdInput.value = plotId || '';
+          }
+          
+          // 判断三种状态
+          const hasOwner = plotOwnerId && plotOwnerId.trim() !== '';
+          const isMine = plotIsMine === 'yes';
+          
+          if (!hasOwner) {
+            // Case A: 空地 (No Owner) -> 显示价格，显示购买按钮，隐藏其他按钮
+            if (plotPriceInfo) {
+              plotPriceInfo.style.display = 'block';
+            }
+            if (priceDisplay) {
+              priceDisplay.textContent = plotPrice || '0';
+            }
+            if (plotOwnerInfo) {
+              plotOwnerInfo.style.display = 'none';
+            }
+            
+            // 检查登录状态
+            if (!isUserAuthenticated) {
+              // 未登录：显示登录提示，隐藏购买按钮
+              if (buyBtnContainer) {
+                buyBtnContainer.style.display = 'none';
+              }
+              if (myPlotBtnContainer) {
+                myPlotBtnContainer.style.display = 'none';
+              }
+              if (loginPromptBuy) {
+                loginPromptBuy.style.display = 'block';
+              }
+            } else {
+              // 已登录：显示购买按钮，隐藏登录提示
+              if (loginPromptBuy) {
+                loginPromptBuy.style.display = 'none';
+              }
+              if (myPlotBtnContainer) {
+                myPlotBtnContainer.style.display = 'none';
+              }
+              if (buyBtnContainer) {
+                buyBtnContainer.style.display = 'block';
+              }
+            }
+          } else if (isMine) {
+            // Case C: 我的地 (Owner == Me) -> 显示"这是我的家"，隐藏购买按钮，显示"进入/装修"按钮
+            if (plotPriceInfo) {
+              plotPriceInfo.style.display = 'none';
+            }
+            if (plotOwnerInfo) {
+              plotOwnerInfo.style.display = 'block';
+              plotOwnerInfo.innerHTML = '<span style="color: #00ffff; font-size: 18px;">🏠 这是我的家</span>';
+            }
+            if (buyBtnContainer) {
+              buyBtnContainer.style.display = 'none';
+            }
+            if (myPlotBtnContainer) {
+              myPlotBtnContainer.style.display = 'block';
+            }
+            if (loginPromptBuy) {
+              loginPromptBuy.style.display = 'none';
+            }
+          } else {
+            // Case B: 别人的地 (Owner != Me) -> 显示"这是 [名字] 的地盘"，隐藏购买按钮
+            if (plotPriceInfo) {
+              plotPriceInfo.style.display = 'none';
+            }
+            if (plotOwnerInfo) {
+              plotOwnerInfo.style.display = 'block';
+              plotOwnerInfo.innerHTML = '<span style="color: #9d4edd; font-size: 16px;">这是 <strong>' + (plotOwnerName || '未知用户') + '</strong> 的地盘</span>';
+            }
+            if (ownerDisplay) {
+              ownerDisplay.textContent = plotOwnerName || '未知用户';
+            }
+            if (buyBtnContainer) {
+              buyBtnContainer.style.display = 'none';
+            }
+            if (myPlotBtnContainer) {
+              myPlotBtnContainer.style.display = 'none';
+            }
+            if (loginPromptBuy) {
+              loginPromptBuy.style.display = 'none';
+            }
+          }
+          
+          // 显示模态框
+          try {
+            const modal = new bootstrap.Modal(modalElement);
+            modal.show();
+          } catch (error) {
+            console.error('显示地块模态框失败:', error);
+          }
+        });
+      });
+      
+      // 添加表单提交验证
+      const buyLandForm = document.getElementById('buy-land-form');
+      if (buyLandForm) {
+        buyLandForm.addEventListener('submit', function(e) {
+          const plotIdInput = document.getElementById('buy-plot-id');
+          if (!plotIdInput || !plotIdInput.value || plotIdInput.value.trim() === '') {
+            e.preventDefault();
+            alert('错误：地块ID无效，请刷新页面重试');
+            return false;
+          }
+          
+          if (!isUserAuthenticated) {
+            e.preventDefault();
+            alert('请先登录');
+            return false;
+          }
+          
+          // 确认购买
+          const price = document.getElementById('price-display')?.textContent || '0';
+          if (!confirm(`确认花费 ${price} 金币购买此地块吗？`)) {
+            e.preventDefault();
+            return false;
+          }
+        });
+      }
+    });
+  </script>
+{% endblock %}

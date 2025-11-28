@@ -1,0 +1,231 @@
+{% extends "web/base.html" %}
+{% load static %}
+
+{% block title %}背包{% endblock %}
+
+{% block content %}
+  <style>
+    .inventory-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 16px;
+      padding: 20px 0;
+    }
+
+    .inventory-slot {
+      position: relative;
+      aspect-ratio: 1;
+      background: rgba(22, 33, 62, 0.6);
+      border: 2px solid rgba(0, 255, 255, 0.3);
+      border-radius: 12px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s ease;
+      cursor: pointer;
+      overflow: hidden;
+    }
+
+    .inventory-slot:hover {
+      border-color: var(--neon-cyan);
+      box-shadow: 0 0 20px rgba(0, 255, 255, 0.4);
+      transform: translateY(-4px);
+      background: rgba(22, 33, 62, 0.9);
+    }
+
+    .inventory-slot-image {
+      width: 100%;
+      height: 80px;
+      object-fit: cover;
+      border-radius: 8px;
+      margin-bottom: 8px;
+    }
+
+    .inventory-slot-placeholder {
+      width: 100%;
+      height: 80px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 8px;
+      border: 1px dashed rgba(255, 255, 255, 0.2);
+    }
+
+    .inventory-slot-name {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      text-align: center;
+      margin-bottom: 4px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      width: 100%;
+    }
+
+    .inventory-slot-quantity {
+      position: absolute;
+      bottom: 8px;
+      right: 8px;
+      background: linear-gradient(135deg, var(--neon-purple), var(--neon-pink));
+      color: white;
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: bold;
+      min-width: 28px;
+      text-align: center;
+      box-shadow: 0 2px 8px rgba(157, 78, 221, 0.5);
+    }
+
+    .inventory-slot-effect {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      background: rgba(0, 255, 255, 0.2);
+      border: 1px solid var(--neon-cyan);
+      color: var(--neon-cyan);
+      padding: 2px 6px;
+      border-radius: 8px;
+      font-size: 0.65rem;
+      font-weight: 600;
+    }
+
+    .inventory-tooltip {
+      position: absolute;
+      bottom: 100%;
+      left: 50%;
+      transform: translateX(-50%) translateY(-8px);
+      background: rgba(22, 33, 62, 0.95);
+      border: 1px solid var(--neon-cyan);
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 0.75rem;
+      color: var(--text-primary);
+      white-space: nowrap;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+      z-index: 10;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    }
+
+    .inventory-slot:hover .inventory-tooltip {
+      opacity: 1;
+    }
+
+    .empty-inventory {
+      grid-column: 1 / -1;
+      text-align: center;
+      padding: 60px 20px;
+      background: rgba(22, 33, 62, 0.4);
+      border: 2px dashed rgba(0, 255, 255, 0.3);
+      border-radius: 12px;
+    }
+  </style>
+
+  <style>
+    .category-filter {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 24px;
+      padding: 16px;
+      background: rgba(22, 33, 62, 0.4);
+      border-radius: 12px;
+      border: 1px solid var(--border-glow);
+    }
+
+    .category-btn {
+      padding: 8px 16px;
+      border: 2px solid rgba(0, 255, 255, 0.3);
+      background: rgba(22, 33, 62, 0.6);
+      color: var(--text-primary);
+      border-radius: 8px;
+      text-decoration: none;
+      transition: all 0.3s ease;
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+
+    .category-btn:hover {
+      border-color: var(--neon-cyan);
+      background: rgba(0, 255, 255, 0.1);
+      color: var(--neon-cyan);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 255, 255, 0.3);
+    }
+
+    .category-btn.active {
+      border-color: var(--neon-cyan);
+      background: linear-gradient(135deg, var(--neon-purple), var(--neon-pink));
+      color: white;
+      box-shadow: 0 0 15px rgba(157, 78, 221, 0.5);
+    }
+  </style>
+
+  <div class="mb-4">
+    <h2>🎒 背包</h2>
+    <p class="text-muted">查看你拥有的所有道具</p>
+  </div>
+
+  <div class="category-filter">
+    <a 
+      href="{% url 'web:inventory' %}" 
+      class="category-btn {% if not current_category %}active{% endif %}"
+    >
+      全部
+    </a>
+    {% for value, label in categories %}
+      <a 
+        href="{% url 'web:inventory' %}?category={{ value }}" 
+        class="category-btn {% if current_category == value %}active{% endif %}"
+      >
+        {{ label }}
+      </a>
+    {% endfor %}
+  </div>
+
+  <div class="inventory-grid">
+    {% for inventory_item in inventory_items %}
+      <div class="inventory-slot">
+        {% if inventory_item.item.image %}
+          <img
+            src="{{ inventory_item.item.image.url }}"
+            alt="{{ inventory_item.item.name }}"
+            class="inventory-slot-image"
+          >
+        {% else %}
+          <div class="inventory-slot-placeholder">
+            <span class="text-muted" style="font-size: 0.7rem;">无图片</span>
+          </div>
+        {% endif %}
+        
+        <div class="inventory-slot-name" title="{{ inventory_item.item.name }}">
+          {{ inventory_item.item.name }}
+        </div>
+        
+        <span class="inventory-slot-quantity">{{ inventory_item.quantity }}</span>
+        
+        {% if inventory_item.item.effect_value > 0 %}
+          <span class="inventory-slot-effect">+{{ inventory_item.item.effect_value }}</span>
+        {% endif %}
+        
+        <div class="inventory-tooltip">
+          {{ inventory_item.item.description|truncatewords:15 }}
+        </div>
+      </div>
+    {% empty %}
+      <div class="empty-inventory">
+        <div style="font-size: 3rem; margin-bottom: 16px;">📦</div>
+        <h5>你的背包是空的</h5>
+        <p class="text-muted">去商店购买一些道具吧！</p>
+      </div>
+    {% endfor %}
+  </div>
+{% endblock %}
+

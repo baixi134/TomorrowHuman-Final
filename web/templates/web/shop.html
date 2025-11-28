@@ -1,0 +1,119 @@
+{% extends "web/base.html" %}
+{% load static %}
+
+{% block title %}商店{% endblock %}
+
+{% block content %}
+  <style>
+    .category-filter {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 24px;
+      padding: 16px;
+      background: rgba(22, 33, 62, 0.4);
+      border-radius: 12px;
+      border: 1px solid var(--border-glow);
+    }
+
+    .category-btn {
+      padding: 8px 16px;
+      border: 2px solid rgba(0, 255, 255, 0.3);
+      background: rgba(22, 33, 62, 0.6);
+      color: var(--text-primary);
+      border-radius: 8px;
+      text-decoration: none;
+      transition: all 0.3s ease;
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+
+    .category-btn:hover {
+      border-color: var(--neon-cyan);
+      background: rgba(0, 255, 255, 0.1);
+      color: var(--neon-cyan);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 255, 255, 0.3);
+    }
+
+    .category-btn.active {
+      border-color: var(--neon-cyan);
+      background: linear-gradient(135deg, var(--neon-purple), var(--neon-pink));
+      color: white;
+      box-shadow: 0 0 15px rgba(157, 78, 221, 0.5);
+    }
+  </style>
+
+  <div class="mb-4">
+    <h2>🛒 商店</h2>
+    <p class="text-muted">购买道具来增强你的虚拟世界体验</p>
+  </div>
+
+  <div class="category-filter">
+    <a 
+      href="{% url 'web:shop' %}" 
+      class="category-btn {% if not current_category %}active{% endif %}"
+    >
+      全部
+    </a>
+    {% for value, label in categories %}
+      <a 
+        href="{% url 'web:shop' %}?category={{ value }}" 
+        class="category-btn {% if current_category == value %}active{% endif %}"
+      >
+        {{ label }}
+      </a>
+    {% endfor %}
+  </div>
+
+  <div class="row g-4">
+    {% for item in items %}
+      <div class="col-md-4 col-lg-3">
+        <div class="card h-100" style="background: rgba(22, 33, 62, 0.8); border: 1px solid var(--border-glow);">
+          <div class="card-body d-flex flex-column">
+            {% if item.image %}
+              <img
+                src="{{ item.image.url }}"
+                alt="{{ item.name }}"
+                class="card-img-top mb-3"
+                style="height: 150px; object-fit: cover; border-radius: 8px;"
+              >
+            {% else %}
+              <div
+                class="bg-secondary d-flex align-items-center justify-content-center mb-3"
+                style="height: 150px; border-radius: 8px;"
+              >
+                <span class="text-muted">无图片</span>
+              </div>
+            {% endif %}
+            
+            <h5 class="card-title">{{ item.name }}</h5>
+            <p class="card-text text-muted small flex-grow-1">{{ item.description }}</p>
+            
+            <div class="mt-auto">
+              <div class="d-flex justify-content-between align-items-center mb-3">
+                <span class="text-warning">💰 {{ item.price }}</span>
+                {% if item.effect_value > 0 %}
+                  <span class="badge bg-info">效果: +{{ item.effect_value }}</span>
+                {% endif %}
+              </div>
+              
+              <form method="post" class="d-inline">
+                {% csrf_token %}
+                <input type="hidden" name="item_id" value="{{ item.id }}">
+                <button type="submit" class="btn btn-primary w-100">购买</button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    {% empty %}
+      <div class="col-12">
+        <div class="alert alert-info">
+          商店暂时没有商品，请稍后再来。
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+{% endblock %}
+
